@@ -54,20 +54,25 @@ async function startServer() {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Transfer-Encoding', 'chunked');
 
-      // 10초마다 공백을 보내 프록시 타임아웃(504) 방지 (Gemma 모델이 생각하는 동안)
-      const keepAlive = setInterval(() => {
-        res.write(' ');
-      }, 10000);
+      let keepAlive: NodeJS.Timeout | null = null;
+      const startKeepAlive = () => {
+        if (keepAlive) clearInterval(keepAlive);
+        keepAlive = setInterval(() => {
+          res.write('\u200B'); // Zero-width space로 보이지 않는 핑 전송
+        }, 5000);
+      };
+
+      startKeepAlive();
 
       try {
         for await (const chunk of responseStream) {
-          clearInterval(keepAlive);
+          startKeepAlive(); // 매 청크 도착 시 무응답 타이머 리셋
           if (chunk.text) {
             res.write(chunk.text);
           }
         }
       } finally {
-        clearInterval(keepAlive);
+        if (keepAlive) clearInterval(keepAlive);
       }
       res.end();
     } catch (err: any) {
@@ -97,9 +102,14 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  // 긴 텍스트 생성 중 Node.js 서버가 연결을 끊는 문제(502 에러) 방지
+  server.setTimeout(30 * 60 * 1000); // 30분
+  server.keepAliveTimeout = 30 * 60 * 1000;
+  server.headersTimeout = 30 * 60 * 1000 + 1000;
 }
 
 startServer();
