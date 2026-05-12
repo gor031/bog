@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Pretendard", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer components {
+  /* Provide basic markdown styling */
+  .markdown-body {
+    @apply text-gray-800 leading-relaxed;
+  }
+  .markdown-body h1 {
+    @apply text-3xl font-bold mt-8 mb-4 border-b pb-2;
+  }
+  .markdown-body h2 {
+    @apply text-2xl font-bold mt-6 mb-4;
+  }
+  .markdown-body h3 {
+    @apply text-xl font-bold mt-5 mb-3;
+  }
+  .markdown-body p {
+    @apply mb-4;
+  }
+  .markdown-body ul {
+    @apply list-disc list-inside mb-4 space-y-1;
+  }
+  .markdown-body ol {
+    @apply list-decimal list-inside mb-4 space-y-1;
+  }
+  .markdown-body li > ul, .markdown-body li > ol {
+    @apply mt-2 ml-4 mb-0;
+  }
+  .markdown-body strong {
+    @apply font-bold text-gray-900;
+  }
+  .markdown-body em {
+    @apply italic;
+  }
+  .markdown-body blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-4;
+  }
+  .markdown-body table {
+    @apply min-w-full border-collapse border border-gray-300 mb-6 bg-white overflow-hidden rounded-lg shadow-sm;
+  }
+  .markdown-body th {
+    @apply border border-gray-300 bg-gray-50 px-4 py-2 font-semibold text-left text-sm text-gray-700 uppercase tracking-wider;
+  }
+  .markdown-body td {
+    @apply border border-gray-300 px-4 py-2 text-sm text-gray-600 whitespace-pre-wrap;
+  }
+  .markdown-body th, .markdown-body td {
+    @apply text-left;
+  }
+  .markdown-body tr:nth-child(even) {
+    @apply bg-gray-50/50;
+  }
+  .markdown-body code {
+    @apply bg-gray-100 rounded px-1.5 py-0.5 text-sm font-mono text-pink-600;
+  }
+  .markdown-body pre {
+    @apply bg-gray-900 text-gray-100 rounded p-4 mb-4 overflow-x-auto;
+  }
+  .markdown-body pre code {
+    @apply bg-transparent p-0 text-inherit;
+  }
+  .markdown-body a {
+    @apply text-blue-600 hover:underline;
+  }
+}
