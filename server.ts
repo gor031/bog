@@ -42,7 +42,7 @@ async function startServer() {
 
     try {
       const ai = new GoogleGenAI({ apiKey: currentKey });
-      const response = await ai.models.generateContent({
+      const responseStream = await ai.models.generateContentStream({
         model: 'gemma-4-31b-it',
         contents: prompt,
         config: {
@@ -51,14 +51,33 @@ async function startServer() {
         }
       });
 
-      if (response.text != null) {
-        res.json({ text: response.text });
-      } else {
-        res.status(500).json({ error: '응답을 생성하지 못했습니다.' });
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Transfer-Encoding', 'chunked');
+
+      // 10초마다 공백을 보내 프록시 타임아웃(504) 방지 (Gemma 모델이 생각하는 동안)
+      const keepAlive = setInterval(() => {
+        res.write(' ');
+      }, 10000);
+
+      try {
+        for await (const chunk of responseStream) {
+          clearInterval(keepAlive);
+          if (chunk.text) {
+            res.write(chunk.text);
+          }
+        }
+      } finally {
+        clearInterval(keepAlive);
       }
+      res.end();
     } catch (err: any) {
       console.error('API Generation Error:', err);
-      res.status(500).json({ error: err.message || '글 생성을 실패했습니다. 다시 시도해주세요.' });
+      // If headers are already sent, we can't send status 500, so we just end it with error text or abort.
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message || '글 생성을 실패했습니다. 다시 시도해주세요.' });
+      } else {
+        res.end(`\n\n[오류 발생: ${err.message}]`);
+      }
     }
   });
 

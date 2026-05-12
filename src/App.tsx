@@ -51,20 +51,28 @@ export default function App() {
         body: JSON.stringify({ prompt }),
       });
 
-      const responseText = await res.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Non-JSON response:', responseText);
-        throw new Error(`API 서버가 올바르지 않은 응답 형식을 반환했습니다 (HTML 등 반환됨). 일시적인 서버 오류일 수 있습니다.`);
-      }
-
       if (!res.ok) {
-        throw new Error(data.error || '응답을 생성하지 못했습니다.');
+        let errMessage = '응답을 생성하지 못했습니다.';
+        try {
+          const data = await res.json();
+          errMessage = data.error || errMessage;
+        } catch (e) {
+          errMessage = await res.text();
+        }
+        throw new Error(errMessage);
       }
 
-      setGeneratedPost(data.text);
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('스트림을 읽을 수 없습니다.');
+      
+      const decoder = new TextDecoder('utf-8');
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        setGeneratedPost((prev) => prev + chunk);
+      }
     } catch (err: any) {
       console.error(err);
       setError(err?.message || '글 생성을 실패했습니다. 다시 시도해주세요.');
@@ -209,7 +217,7 @@ export default function App() {
             </div>
           )}
 
-          {isGenerating && (
+          {isGenerating && !generatedPost.trim() && (
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm h-[500px] flex flex-col items-center justify-center">
               <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-6" />
               <div className="space-y-4 w-full max-w-md animate-pulse">
@@ -217,18 +225,27 @@ export default function App() {
                 <div className="h-4 bg-slate-200 rounded-full w-5/6 mx-auto"></div>
                 <div className="h-4 bg-slate-200 rounded-full w-4/5 mx-auto"></div>
               </div>
-              <p className="mt-8 text-slate-500 text-sm font-medium">
-                AI가 최고 수준의 SEO 블로그 글을 기획하고 작성 중입니다...
+              <p className="mt-8 text-slate-500 text-sm font-medium text-center">
+                최고의 SEO 블로그 글을 기획하고 있습니다.<br/>모델이 깊게 생각하느라 시간이 조금 걸릴 수 있습니다...
               </p>
             </div>
           )}
 
-          {generatedPost && !isGenerating && (
+          {generatedPost.trim() && (
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
               <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 items-center justify-between flex sticky top-0 z-10">
                 <h3 className="font-semibold flex items-center gap-2 text-slate-800">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  생성 완료
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                      작성 중...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                      생성 완료
+                    </>
+                  )}
                 </h3>
                 <div className="flex items-center gap-2">
                   <button
