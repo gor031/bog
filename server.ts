@@ -43,7 +43,7 @@ async function startServer() {
     try {
       const ai = new GoogleGenAI({ apiKey: currentKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemma-4-31b-it',
         contents: prompt,
       });
 
