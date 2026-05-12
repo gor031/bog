@@ -51,7 +51,14 @@ export default function App() {
         body: JSON.stringify({ prompt }),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Non-JSON response:', responseText);
+        throw new Error(`API 서버가 올바르지 않은 응답 형식을 반환했습니다 (HTML 등 반환됨). 일시적인 서버 오류일 수 있습니다.`);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || '응답을 생성하지 못했습니다.');
