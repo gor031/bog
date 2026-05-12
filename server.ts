@@ -45,6 +45,10 @@ async function startServer() {
       const response = await ai.models.generateContent({
         model: 'gemma-4-31b-it',
         contents: prompt,
+        config: {
+          thinkingConfig: { thinkingLevel: 'HIGH' as any },
+          tools: [{ googleSearch: {} }],
+        }
       });
 
       if (response.text != null) {
