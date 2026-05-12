@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Download, Loader2, Sparkles, FileText, CheckCircle2, Copy, Check, Settings, X, Key } from 'lucide-react';
+import { Download, Loader2, Sparkles, FileText, CheckCircle2, Copy, Check } from 'lucide-react';
 import { cn } from './lib/utils';
 const LENGTH_OPTIONS = [
   { value: 1000, label: '약 1,000자 (짧은 글)' },
@@ -18,21 +18,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Settings State
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiKeys, setApiKeys] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('gemini_api_keys');
-      return saved ? JSON.parse(saved) : ['', '', ''];
-    } catch {
-      return ['', '', ''];
-    }
-  });
   const [currentKeyIndex, setCurrentKeyIndex] = useState(0);
-
-  useEffect(() => {
-    localStorage.setItem('gemini_api_keys', JSON.stringify(apiKeys));
-  }, [apiKeys]);
 
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -40,12 +26,7 @@ export default function App() {
   const getAvailableKeys = () => {
     const keys: string[] = [];
     
-    // 1. UI 설정 키 (localStorage)
-    apiKeys.forEach((key) => {
-      if (key && key.trim() && !keys.includes(key.trim())) keys.push(key.trim());
-    });
-
-    // 2. 환경변수 키 (Vite)
+    // 환경변수 키 (Vite)
     const envKey1 = import.meta.env.VITE_GEMINI_API_KEY_1;
     const envKey2 = import.meta.env.VITE_GEMINI_API_KEY_2;
     const envKey3 = import.meta.env.VITE_GEMINI_API_KEY_3;
@@ -54,17 +35,11 @@ export default function App() {
     if (envKey2 && !keys.includes(envKey2)) keys.push(envKey2);
     if (envKey3 && !keys.includes(envKey3)) keys.push(envKey3);
 
-    // 3. AI Studio 기본 키
+    // AI Studio 기본 키
     const defaultKey = process.env.GEMINI_API_KEY;
     if (defaultKey && !keys.includes(defaultKey)) keys.push(defaultKey);
     
     return keys;
-  };
-
-  const handleKeyChange = (index: number, value: string) => {
-    const newKeys = [...apiKeys];
-    newKeys[index] = value;
-    setApiKeys(newKeys);
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -77,7 +52,7 @@ export default function App() {
 
     const availableKeys = getAvailableKeys();
     if (availableKeys.length === 0) {
-      setError('설정된 API 키가 없습니다. 우측 상단의 톱니바퀴 버튼을 눌러 API 키를 입력하거나 .env 파일에 환경변수로 설정해주세요.');
+      setError('설정된 API 키가 없습니다. .env 파일에 환경변수로 설정해주세요.');
       setIsGenerating(false);
       return;
     }
@@ -157,66 +132,8 @@ export default function App() {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors border border-transparent focus:border-slate-300"
-            title="API 키 설정"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
         </div>
       </header>
-
-      {/* Settings Modal */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Key className="w-5 h-5 text-slate-600" />
-                API 키 설정 (순환 방식)
-              </h2>
-              <button 
-                onClick={() => setIsSettingsOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg">
-                여러 개의 Gemini API 키를 등록하면 요청 시 자동으로 돌아가며 사용됩니다 (Rate Limit 방지용). 입력된 키는 브라우저에만 안전하게 저장됩니다.
-              </p>
-              
-              <div className="space-y-4 pt-2">
-                {[1, 2, 3].map((num, i) => (
-                  <div key={num} className="space-y-1.5">
-                    <label className="block text-xs font-medium text-slate-500 ml-1">
-                      API 키 {num}
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKeys[i]}
-                      onChange={(e) => handleKeyChange(i, e.target.value)}
-                      placeholder="AIzaSy..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all bg-white"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-4 flex justify-end">
-                <button
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition-colors"
-                >
-                  저장하고 닫기
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <main className="max-w-5xl mx-auto p-4 md:p-8 flex flex-col lg:flex-row gap-8 items-start">
         {/* Input Panel */}
