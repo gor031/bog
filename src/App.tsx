@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Download, Loader2, Sparkles, FileText, CheckCircle2, Copy, Check } from 'lucide-react';
@@ -18,29 +17,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const [currentKeyIndex, setCurrentKeyIndex] = useState(0);
-
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-
-  const getAvailableKeys = () => {
-    const keys: string[] = [];
-    
-    // 환경변수 키 (Vite)
-    const envKey1 = import.meta.env.VITE_GEMINI_API_KEY_1;
-    const envKey2 = import.meta.env.VITE_GEMINI_API_KEY_2;
-    const envKey3 = import.meta.env.VITE_GEMINI_API_KEY_3;
-    
-    if (envKey1 && !keys.includes(envKey1)) keys.push(envKey1);
-    if (envKey2 && !keys.includes(envKey2)) keys.push(envKey2);
-    if (envKey3 && !keys.includes(envKey3)) keys.push(envKey3);
-
-    // AI Studio 기본 키
-    const defaultKey = process.env.GEMINI_API_KEY;
-    if (defaultKey && !keys.includes(defaultKey)) keys.push(defaultKey);
-    
-    return keys;
-  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,19 +28,7 @@ export default function App() {
     setGeneratedPost('');
     setError(null);
 
-    const availableKeys = getAvailableKeys();
-    if (availableKeys.length === 0) {
-      setError('설정된 API 키가 없습니다. .env 파일에 환경변수로 설정해주세요.');
-      setIsGenerating(false);
-      return;
-    }
-
-    // Rotate key
-    const currentKey = availableKeys[currentKeyIndex % availableKeys.length];
-    setCurrentKeyIndex((prev) => prev + 1);
-
     try {
-      const ai = new GoogleGenAI({ apiKey: currentKey });
       const prompt = `
 당신은 최고의 SEO 전문가이자 전문 블로그 콘텐츠 마케터입니다.
 오늘 날짜는 ${currentDate}입니다. 이 시점에 맞는 최신 트렌드와 정보를 반영하여,
@@ -77,16 +43,21 @@ export default function App() {
 6. SEO 최적화: 핵심 키워드가 제목과 본문에 자연스럽게 반복되도록 할 것. 도입부에서 독자의 흥미를 끌고, 결론에서 명확한 요약이나 CTA(Call to Action)를 제공할 것.
       `;
 
-      const response = await ai.models.generateContent({
-        model: 'gemma-4-31b-it',
-        contents: prompt,
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
       });
 
-      if (response.text != null) {
-        setGeneratedPost(response.text);
-      } else {
-        throw new Error('응답을 생성하지 못했습니다.');
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || '응답을 생성하지 못했습니다.');
       }
+
+      setGeneratedPost(data.text);
     } catch (err: any) {
       console.error(err);
       setError(err?.message || '글 생성을 실패했습니다. 다시 시도해주세요.');
