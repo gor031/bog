@@ -53,13 +53,16 @@ async function startServer() {
 
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader('X-Accel-Buffering', 'no'); // 프록시(Nginx)가 응답을 버퍼링하지 않고 즉시 보내도록 설정
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.flushHeaders(); // 헤더를 클라이언트로 즉시 전송
 
       let keepAlive: NodeJS.Timeout | null = null;
       const startKeepAlive = () => {
         if (keepAlive) clearInterval(keepAlive);
         keepAlive = setInterval(() => {
-          res.write('\u200B'); // Zero-width space로 보이지 않는 핑 전송
-        }, 5000);
+          res.write('\u200B'); // Zero-width space로 보이지 않는 핑을 보내고, 버퍼를 플러시하여 타임아웃 우회
+        }, 3000); // 간격을 3초로 단축
       };
 
       startKeepAlive();

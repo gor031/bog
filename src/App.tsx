@@ -53,11 +53,12 @@ export default function App() {
 
       if (!res.ok) {
         let errMessage = '응답을 생성하지 못했습니다.';
+        const errText = await res.text();
         try {
-          const data = await res.json();
+          const data = JSON.parse(errText);
           errMessage = data.error || errMessage;
         } catch (e) {
-          errMessage = await res.text();
+          errMessage = errText || errMessage; // JSON이 아니면 텍스트 자체(에러 HTML 등)를 반환
         }
         throw new Error(errMessage);
       }
@@ -71,7 +72,10 @@ export default function App() {
         const { value, done } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        setGeneratedPost((prev) => prev + chunk);
+        const cleanedChunk = chunk.replace(/\u200B/g, ''); // 핑으로 보낸 Zero-width space 제거
+        if (cleanedChunk) {
+          setGeneratedPost((prev) => prev + cleanedChunk);
+        }
       }
     } catch (err: any) {
       console.error(err);
