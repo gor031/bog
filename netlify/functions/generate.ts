@@ -38,7 +38,6 @@ export const handler: Handler = async (event) => {
       model: 'gemma-4-31b-it',
       contents: prompt,
       config: {
-        thinkingConfig: { thinkingLevel: 'HIGH' as any },
         tools: [{ googleSearch: {} }],
       }
     });
